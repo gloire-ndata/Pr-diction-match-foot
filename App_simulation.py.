@@ -1,0 +1,84 @@
+import streamlit as st
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Titre de l'application
+st.title("Simulateur de Matchs de Football")
+
+# Entrée des données de l'utilisateur
+st.markdown("### Entrez les statistiques des équipes")
+col1, col2 = st.columns(2)
+
+with col1:
+    attaque_domicile = st.number_input("Attaque Domicile (0-100)", min_value=0, max_value=100, value=50)
+
+with col2:
+    attaque_exterieur = st.number_input("Attaque Extérieur (0-100)", min_value=0, max_value=100, value=50)
+
+col3, col4 = st.columns(2)
+
+with col3:
+    defense_domicile = st.number_input("Défense Domicile (0-100)", min_value=0, max_value=100, value=50)
+
+with col4:
+    defense_exterieur = st.number_input("Défense Extérieure (0-100)", min_value=0, max_value=100, value=50)
+
+# Entrée des cotes des bookmakers
+st.markdown("### Cotes des bookmakers (optionnel)")
+
+col5, col6, col7 = st.columns(3)
+
+with col5:
+    cote_home = st.number_input("Cote Victoire Domicile", min_value=1.01, value=1.95)
+
+with col6:
+    cote_draw = st.number_input("Cote Nul", min_value=1.01, value=3.40)
+
+with col7:
+    cote_away = st.number_input("Cote Victoire Extérieur", min_value=1.01, value=3.90)
+
+# Calcul des probabilités
+vic_home = 1 / (attaque_domicile / defense_exterieur)
+vic_ext = 1 / (attaque_exterieur / defense_domicile)
+nul = 1 / (0.5 * (vic_home + vic_ext))
+
+# Normalisation des probabilités
+somme = vic_home + nul + vic_ext
+vic_home /= somme
+vic_ext /= somme
+nul /= somme
+
+# Affichage des résultats
+if st.button("Simuler le match"):
+    st.markdown("### Résultats de la simulation")
+
+    st.write(f"Probabilité victoire domicile : {vic_home:.2%}")
+    st.write(f"Probabilité Nul : {nul:.2%}")
+    st.write(f"Probabilité victoire extérieur : {vic_ext:.2%}")
+
+    # Comparaison avec les cotes
+    proba_home_bk = 1 / cote_home
+    proba_draw_bk = 1 / cote_draw
+    proba_away_bk = 1 / cote_away
+
+    # Normalisation des probabilités des bookmakers
+    somme_bk = proba_home_bk + proba_draw_bk + proba_away_bk
+    proba_home_bk /= somme_bk
+    proba_draw_bk /= somme_bk
+    proba_away_bk /= somme_bk
+
+    st.markdown("### Comparaison avec les probabilités des bookmakers")
+    st.write(f"**Bookmakers** : Victoire Domicile : {proba_home_bk:.2%} | Nul : {proba_draw_bk:.2%} | Victoire Extérieur : {proba_away_bk:.2%}")
+    st.write(f"**Modèle** : Victoire Domicile : {vic_home:.2%} | Nul : {nul:.2%} | Victoire Extérieur : {vic_ext:.2%}")
+
+    # Analyse de Value Bet
+    def analyse_value(proba_modele, proba_bk, label, cote):
+        if proba_modele > proba_bk:
+            value = (proba_modele * cote) - 1
+            st.success(f"**Value bet détecté sur {label}** : Value = {value:.2%}")
+        else:
+            st.info(f"Aucune value sur {label}")
+
+    analyse_value(vic_home, proba_home_bk, "Victoire Domicile", cote_home)
+    analyse_value(nul, proba_draw_bk, "Nul", cote_draw)
+    analyse_value(vic_ext, proba_away_bk, "Victoire Extérieur", cote_away)
